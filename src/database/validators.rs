@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::table_data::{Table, Options};
+use crate::table::data::{Table, Options};
 
 #[derive(Debug)]
 pub struct Database {

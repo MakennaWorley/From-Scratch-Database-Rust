@@ -1,4 +1,4 @@
-use crate::table_data::{Table, Column, Value, DataType};
+use crate::table::data::{Table, Column, Value, DataType};
 use std::fs;
 use std::fs::File;
 use std::io::{BufWriter, Write, BufReader, BufRead, Read};

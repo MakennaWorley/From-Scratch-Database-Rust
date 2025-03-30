@@ -1,11 +1,10 @@
-mod table_data;
-mod table_functions;
-mod table_validators;
-mod database_validators;
+mod table;
+mod database;
+
+use crate::table::data::{Table, Column, Value, DataType, Options};
+use crate::database::validators::Database;
 
 use chrono::NaiveDate;
-use crate::table_data::*;
-use crate::database_validators::*;
 
 fn main() {
     // Define columns

@@ -1,6 +1,6 @@
 use chrono::{NaiveDate, NaiveTime, NaiveDateTime};
 use std::collections::HashSet;
-use crate::table_data::{Table, Column, Value, Options, DataType, DBRows};
+use crate::table::data::{Table, Column, Value, Options, DataType, DBRows};
 
 impl Table {
     pub fn validate_schema(&self) -> Result<(), String> {
