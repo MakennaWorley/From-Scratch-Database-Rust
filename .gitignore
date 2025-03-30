@@ -1,5 +1,6 @@
 /target
 /.idea
+/db
 Cargo.lock
 
 .DS_store

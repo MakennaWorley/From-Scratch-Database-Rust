@@ -107,10 +107,26 @@ impl Table {
                 for existing in &self.rows {
                     if &existing[i] == value {
                         return Err(format!(
-                            "Unique constraint violated in column '{}' for value '{:?}'",
-                            column.name, value
+                            "Unique constraint violated in column '{}' for value '{}'",
+                            column.name,
+                            value.to_display_string()
                         ));
                     }
+                }
+            }
+        }
+
+        // 6. Primary key uniqueness check
+        if let Some(pk_cols) = &self.primary_key {
+            let pk_indices: Vec<_> = pk_cols
+                .iter()
+                .filter_map(|pk| self.columns.iter().position(|c| &c.name == pk))
+                .collect();
+
+            for existing in &self.rows {
+                let is_duplicate = pk_indices.iter().all(|&i| row[i] == existing[i]);
+                if is_duplicate {
+                    return Err("Primary key constraint violated: duplicate entry".to_string());
                 }
             }
         }
@@ -157,7 +173,6 @@ impl Table {
         Ok(max_val + 1)
     }
 }
-
 
 impl Column {
     pub fn validate(&self) -> Result<(), String> {
@@ -252,6 +267,61 @@ impl Value {
             (Value::DateTime(_), DataType::DateTime) => true,
             (Value::Null, _) => true, // null is allowed type-wise (check nullability separately)
             _ => false,
+        }
+    }
+
+    pub fn to_display_string(&self) -> String {
+        match self {
+            Value::Char(c) => c.to_string(),
+            Value::Varchar(s) | Value::Text(s) => s.clone(),
+            Value::Enum(val, _) => val.clone(),
+            Value::Set(vals, _) => format!("{{{}}}", vals.join(",")),
+            Value::Boolean(b) => b.to_string(),
+            Value::Int(i) => i.to_string(),
+            Value::BigInt(i) => i.to_string(),
+            Value::Float(f) => f.to_string(),
+            Value::Double(f) => f.to_string(),
+            Value::Date(d) => d.to_string(),
+            Value::Time(t) => t.to_string(),
+            Value::DateTime(dt) => dt.to_string(),
+            Value::Null => "NULL".to_string(),
+        }
+    }
+
+    pub fn from_str(s: &str, dtype: &DataType) -> Result<Self, String> {
+        let unquoted = s.trim().trim_matches('"');
+
+        match dtype {
+            DataType::Char => {
+                if unquoted.len() == 1 {
+                    Ok(Value::Char(unquoted.chars().next().unwrap()))
+                } else {
+                    Err("Expected a single character".to_string())
+                }
+            }
+            DataType::Varchar | DataType::Text => Ok(Value::Varchar(unquoted.to_string())),
+            DataType::Boolean => match unquoted {
+                "true" => Ok(Value::Boolean(true)),
+                "false" => Ok(Value::Boolean(false)),
+                _ => Err("Invalid boolean value".to_string()),
+            },
+            DataType::Int => unquoted.parse().map(Value::Int).map_err(|_| "Invalid int".to_string()),
+            DataType::BigInt => unquoted.parse().map(Value::BigInt).map_err(|_| "Invalid bigint".to_string()),
+            DataType::Float => unquoted.parse().map(Value::Float).map_err(|_| "Invalid float".to_string()),
+            DataType::Double => unquoted.parse().map(Value::Double).map_err(|_| "Invalid double".to_string()),
+            DataType::Date => Value::from_date_str(unquoted).map_err(|e| format!("Invalid date: {}", e)),
+            DataType::Time => Value::from_time_str(unquoted).map_err(|e| format!("Invalid time: {}", e)),
+            DataType::DateTime => Value::from_datetime_str(unquoted).map_err(|e| format!("Invalid datetime: {}", e)),
+            DataType::Enum => Ok(Value::Enum(unquoted.to_string(), vec![])), // assumes schema re-validates
+            DataType::Set => {
+                let inner = unquoted.trim_matches(|c| c == '{' || c == '}');
+                let items = if inner.is_empty() {
+                    vec![]
+                } else {
+                    inner.split(',').map(|s| s.trim().to_string()).collect()
+                };
+                Ok(Value::Set(items, vec![])) // again, assumes schema re-validates
+            }
         }
     }
 }
