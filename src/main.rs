@@ -1,11 +1,11 @@
-mod table_data;
-mod table_functions;
-mod table_validators;
-mod database_validators;
+mod table;
+mod database;
+
+use crate::table::data::{Table, Column, Value, DataType, Options, FilterExpr};
+use crate::database::validators::Database;
+use std::collections::HashMap;
 
 use chrono::NaiveDate;
-use crate::table_data::*;
-use crate::database_validators::*;
 
 fn main() {
     // Define columns
@@ -89,6 +89,8 @@ fn main() {
         ],
         rows: vec![],
         primary_key: None,
+        indexes: HashMap::new(),
+        transaction_backup: None,
     };
     db.tables.insert("logins".to_string(), fk_table);
 
@@ -348,20 +350,14 @@ fn main() {
         }
     ];
     let mut empty_table = Table::new("empty_delete", empty_columns.clone(), None);
-    empty_table.delete_where(|row| match &row[0] {
-        Value::Int(x) => *x == 1,
-        _ => false,
-    });
+    empty_table.delete_where(&FilterExpr::Eq("id".to_string(), Value::Int(1)));
     println!("✅ Safe delete on empty table passed");
     empty_table.print_table();
 
     // Delete a row that doesn’t exist
     let mut one_row_table = Table::new("delete_miss", empty_columns.clone(), None);
     one_row_table.insert(vec![Value::Int(1)]).unwrap();
-    one_row_table.delete_where(|row| match &row[0] {
-        Value::Int(x) => *x == 999,
-        _ => false,
-    });
+    one_row_table.delete_where(&FilterExpr::Eq("id".to_string(), Value::Int(999)));
     println!("✅ No rows deleted, as expected:");
     one_row_table.print_table();
 }
