@@ -1,10 +1,11 @@
 use crate::table::data::{AggregationResult, Column, DataType, IndexType, Options, Table, Value};
 use crate::table::filters::FilterExpr;
 use csv::ReaderBuilder;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use std::cmp::Ordering;
 
 impl Table {
     pub fn new(name: &str, columns: Vec<Column>, pk: Option<Vec<String>>) -> Self {
@@ -115,18 +116,21 @@ impl Table {
         let mut indices = vec![];
 
         if let Some(index) = self.indexes.get(expr.column().as_str()) {
-            if let Some(row_indices) = index.get(&expr.value()) {
-                for &i in row_indices {
-                    if predicate(&self.rows[i]) {
-                        let mut new_row = self.rows[i].clone();
-                        for (j, update) in updates.iter().enumerate() {
-                            if let Some(val) = update {
-                                new_row[j] = val.clone();
+            // Extract the key value from the expression if available.
+            if let Some(v) = expr.value() {
+                if let Some(row_indices) = index.get(v) {
+                    for &i in row_indices {
+                        if predicate(&self.rows[i]) {
+                            let mut new_row = self.rows[i].clone();
+                            for (j, update) in updates.iter().enumerate() {
+                                if let Some(val) = update {
+                                    new_row[j] = val.clone();
+                                }
                             }
+                            self.validate_row(&new_row)?;
+                            updated_rows.push(new_row);
+                            indices.push(i);
                         }
-                        self.validate_row(&new_row)?;
-                        updated_rows.push(new_row);
-                        indices.push(i);
                     }
                 }
             }
@@ -149,27 +153,29 @@ impl Table {
             .unwrap();
 
         if let Some(index) = self.indexes.get(expr.column().as_str()) {
-            if let Some(row_indices) = index.get(&expr.value()) {
-                let to_remove: HashMap<usize, ()> = row_indices
-                    .iter()
-                    .filter(|&&i| predicate(&self.rows[i]))
-                    .map(|&i| (i, ()))
-                    .collect();
+            if let Some(v) = expr.value() {
+                if let Some(row_indices) = index.get(v) {
+                    let to_remove: HashMap<usize, ()> = row_indices
+                        .iter()
+                        .filter(|&&i| predicate(&self.rows[i]))
+                        .map(|&i| (i, ()))
+                        .collect();
 
-                self.rows = self
-                    .rows
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, row)| {
-                        if to_remove.contains_key(&i) {
-                            None
-                        } else {
-                            Some(row.clone())
-                        }
-                    })
-                    .collect();
+                    self.rows = self
+                        .rows
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, row)| {
+                            if to_remove.contains_key(&i) {
+                                None
+                            } else {
+                                Some(row.clone())
+                            }
+                        })
+                        .collect();
 
-                self.rebuild_all_indexes(); // simple for now
+                    self.rebuild_all_indexes(); // simple for now
+                }
             }
         }
     }
@@ -537,6 +543,52 @@ impl Table {
         }
 
         Ok(result)
+    }
+
+    pub fn full_outer_join<'a>(
+        &'a self,
+        other: &'a Table,
+        on: (&str, &str),
+    ) -> Result<Vec<(Vec<Option<&'a Value>>, Vec<Option<&'a Value>>)>, String> {
+        let self_idx = self.columns.iter().position(|c| c.name == on.0)
+            .ok_or_else(|| format!("Column '{}' not found in '{}'", on.0, self.name))?;
+        let other_idx = other.columns.iter().position(|c| c.name == on.1)
+            .ok_or_else(|| format!("Column '{}' not found in '{}'", on.1, other.name))?;
+
+        let mut left_matched = vec![false; self.rows.len()];
+        let mut right_matched = vec![false; other.rows.len()];
+        let mut results = vec![];
+
+        for (i, left_row) in self.rows.iter().enumerate() {
+            let mut match_found = false;
+            for (j, right_row) in other.rows.iter().enumerate() {
+                if left_row[self_idx] == right_row[other_idx] {
+                    results.push((
+                        left_row.iter().map(|v| Some(v)).collect(),
+                        right_row.iter().map(|v| Some(v)).collect(),
+                    ));
+                    left_matched[i] = true;
+                    right_matched[j] = true;
+                    match_found = true;
+                }
+            }
+            if !match_found {
+                results.push((
+                    left_row.iter().map(|v| Some(v)).collect(),
+                    vec![None; other.columns.len()],
+                ));
+            }
+        }
+
+        for (j, right_row) in other.rows.iter().enumerate() {
+            if !right_matched[j] {
+                results.push((
+                    vec![None; self.columns.len()],
+                    right_row.iter().map(|v| Some(v)).collect(),
+                ));
+            }
+        }
+        Ok(results)
     }
 
     pub fn select_join_where<'a, F>(
@@ -1141,6 +1193,118 @@ impl Table {
         }
 
         Ok(result)
+    }
+
+    pub fn select_order_by(&self, order_cols: &[&str]) -> Result<Vec<&Vec<Value>>, String> {
+        let mut indices = Vec::new();
+        for &col in order_cols {
+            let idx = self.columns.iter().position(|c| c.name == col)
+                .ok_or_else(|| format!("Column {} not found", col))?;
+            indices.push(idx);
+        }
+        let mut rows: Vec<&Vec<Value>> = self.rows.iter().collect();
+        rows.sort_by(|a, b| {
+            for &i in &indices {
+                match a[i].cmp(&b[i]) {
+                    Ordering::Equal => continue,
+                    non_eq => return non_eq,
+                }
+            }
+            Ordering::Equal
+        });
+        Ok(rows)
+    }
+
+    pub fn select_distinct(&self) -> Vec<&Vec<Value>> {
+        let mut seen = HashSet::new();
+        self.rows.iter().filter(|row| {
+            let key = row.iter()
+                .map(|v| v.to_display_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            if seen.contains(&key) {
+                false
+            } else {
+                seen.insert(key);
+                true
+            }
+        }).collect()
+    }
+
+    pub fn truncate(&mut self) {
+        self.rows.clear();
+        self.indexes.clear();
+    }
+
+    pub fn union(&self, other: &Table) -> Result<Table, String> {
+        if self.columns.len() != other.columns.len() {
+            return Err("Tables have different number of columns".to_string());
+        }
+        for (col1, col2) in self.columns.iter().zip(other.columns.iter()) {
+            if col1.name != col2.name || col1.datatype != col2.datatype {
+                return Err("Table schemas do not match".to_string());
+            }
+        }
+        let mut new_rows = self.rows.clone();
+        new_rows.extend(other.rows.clone());
+        let mut seen = HashSet::new();
+        new_rows.retain(|row| {
+            let key = row.iter()
+                .map(|v| v.to_display_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            if seen.contains(&key) { false } else { seen.insert(key); true }
+        });
+        Ok(Table {
+            name: format!("union_{}_{}", self.name, other.name),
+            columns: self.columns.clone(),
+            rows: new_rows,
+            primary_key: None,
+            indexes: HashMap::new(),
+            transaction_backup: None,
+        })
+    }
+
+    pub fn intersect(&self, other: &Table) -> Result<Table, String> {
+        if self.columns.len() != other.columns.len() {
+            return Err("Tables have different number of columns".to_string());
+        }
+        let other_set: HashSet<String> = other.rows.iter().map(|row| {
+            row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",")
+        }).collect();
+        let new_rows: Vec<Vec<Value>> = self.rows.iter().filter(|row| {
+            let key = row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",");
+            other_set.contains(&key)
+        }).cloned().collect();
+        Ok(Table {
+            name: format!("intersect_{}_{}", self.name, other.name),
+            columns: self.columns.clone(),
+            rows: new_rows,
+            primary_key: None,
+            indexes: HashMap::new(),
+            transaction_backup: None,
+        })
+    }
+
+    pub fn except(&self, other: &Table) -> Result<Table, String> {
+        if self.columns.len() != other.columns.len() {
+            return Err("Tables have different number of columns".to_string());
+        }
+        let other_set: HashSet<String> = other.rows.iter().map(|row| {
+            row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",")
+        }).collect();
+        let new_rows: Vec<Vec<Value>> = self.rows.iter().filter(|row| {
+            let key = row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",");
+            !other_set.contains(&key)
+        }).cloned().collect();
+        Ok(Table {
+            name: format!("except_{}_{}", self.name, other.name),
+            columns: self.columns.clone(),
+            rows: new_rows,
+            primary_key: None,
+            indexes: HashMap::new(),
+            transaction_backup: None,
+        })
     }
 
     pub fn save_as_view(&self, db_name: &str, view_name: &str) -> Result<(), String> {

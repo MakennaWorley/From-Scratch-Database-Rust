@@ -1,6 +1,43 @@
 use chrono::{NaiveDate, NaiveTime, NaiveDateTime};
-use std::collections::HashSet;
-use crate::table::data::{Table, Column, Value, Options, DataType, DBRows};
+use std::collections::{HashMap, HashSet};
+use crate::table::data::{Table, Column, Value, Options, DataType, DBRows, Query};
+
+impl Query {
+    pub fn execute(&self) -> Result<Table, String> {
+        match self {
+            Query::Select { table, filter } => {
+                let rows = if let Some(pred) = filter {
+                    table.rows.iter().filter(|row| pred(row)).cloned().collect()
+                } else {
+                    table.rows.clone()
+                };
+                Ok(Table {
+                    name: table.name.clone(),
+                    columns: table.columns.clone(),
+                    rows,
+                    primary_key: table.primary_key.clone(),
+                    indexes: HashMap::new(),
+                    transaction_backup: None,
+                })
+            }
+            Query::Union { left, right } => {
+                let left_table = left.execute()?;
+                let right_table = right.execute()?;
+                left_table.union(&right_table)
+            }
+            Query::Intersect { left, right } => {
+                let left_table = left.execute()?;
+                let right_table = right.execute()?;
+                left_table.intersect(&right_table)
+            }
+            Query::Except { left, right } => {
+                let left_table = left.execute()?;
+                let right_table = right.execute()?;
+                left_table.except(&right_table)
+            }
+        }
+    }
+}
 
 impl Table {
     pub fn validate_schema(&self) -> Result<(), String> {

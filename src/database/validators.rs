@@ -13,6 +13,22 @@ impl Database {
         }
     }
 
+    pub fn create_table(&mut self, table: Table) -> Result<(), String> {
+        if self.tables.contains_key(&table.name) {
+            return Err(format!("Table '{}' already exists", table.name));
+        }
+        self.tables.insert(table.name.clone(), table);
+        Ok(())
+    }
+
+    pub fn drop_table(&mut self, table_name: &str) -> Result<(), String> {
+        if self.tables.remove(table_name).is_some() {
+            Ok(())
+        } else {
+            Err(format!("Table '{}' does not exist", table_name))
+        }
+    }
+
     pub fn validate_foreign_keys(&self) -> Result<(), String> {
         for table in self.tables.values() {
             for column in &table.columns {

@@ -183,11 +183,16 @@ pub struct Table {
 #[derive(Debug, Clone)]
 pub enum FilterExpr {
     Eq(String, Value),
+    Ne(String, Value),
     Gt(String, Value),
     Lt(String, Value),
     Ge(String, Value),
     Le(String, Value),
-    Ne(String, Value),
+    Like(String, String),
+    In(String, Vec<Value>),
+    Between(String, Value, Value),
+    IsNull(String),
+    IsNotNull(String),
 }
 
 pub struct View<'a> {
@@ -217,4 +222,23 @@ pub enum AggregationResult {
     Count(usize),
     Min(Value),
     Max(Value),
+}
+
+pub enum Query {
+    Select {
+        table: Table,
+        filter: Option<Box<dyn Fn(&Vec<Value>) -> bool>>,
+    },
+    Union {
+        left: Box<Query>,
+        right: Box<Query>,
+    },
+    Intersect {
+        left: Box<Query>,
+        right: Box<Query>,
+    },
+    Except {
+        left: Box<Query>,
+        right: Box<Query>,
+    },
 }
