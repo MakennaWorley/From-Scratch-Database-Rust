@@ -1,4 +1,11 @@
 pub mod data;
 pub mod functions;
 pub mod validators;
-mod filters;
+pub mod filters;
+pub mod crud;
+pub mod io;
+pub mod query;
+pub mod indexing;
+pub mod joins;
+pub mod transactions;
+pub mod schema;

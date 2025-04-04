@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::table::data::{Table, Options};
+use crate::table::data::{Table, Options, Column};
 
 #[derive(Debug)]
 pub struct Database {
@@ -27,6 +27,38 @@ impl Database {
         } else {
             Err(format!("Table '{}' does not exist", table_name))
         }
+    }
+
+    pub fn alter_add_column(&mut self, table_name: &str, new_column: Column) -> Result<(), String> {
+        let table = self
+            .tables
+            .get_mut(table_name)
+            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
+
+        table.alter_add_column(new_column)
+    }
+
+    pub fn rename_column(
+        &mut self,
+        table_name: &str,
+        old_name: &str,
+        new_name: &str,
+    ) -> Result<(), String> {
+        let table = self
+            .tables
+            .get_mut(table_name)
+            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
+
+        table.rename_column(old_name, new_name)
+    }
+
+    pub fn drop_column(&mut self, table_name: &str, col_name: &str) -> Result<(), String> {
+        let table = self
+            .tables
+            .get_mut(table_name)
+            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
+
+        table.drop_column(col_name)
     }
 
     pub fn validate_foreign_keys(&self) -> Result<(), String> {
