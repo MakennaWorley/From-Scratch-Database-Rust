@@ -53,7 +53,6 @@ impl Table {
         updates: Vec<Option<Value>>,
     ) -> Result<(), String> {
         let predicate = expr.to_predicate(self);
-        let mut updated_rows = vec![];
         let mut indices = vec![];
 
         if let Some(index) = self.indexes.get(expr.column().as_str()) {
@@ -61,26 +60,32 @@ impl Table {
                 if let Some(row_indices) = index.get(v) {
                     for &i in row_indices {
                         if predicate(&self.rows[i]) {
-                            let mut new_row = self.rows[i].clone();
-                            for (j, update) in updates.iter().enumerate() {
-                                if let Some(val) = update {
-                                    new_row[j] = val.clone();
-                                }
-                            }
-                            self.validate_row(&new_row)?;
-                            updated_rows.push(new_row);
                             indices.push(i);
                         }
                     }
                 }
             }
+        } else {
+            // Fallback: scan all rows if no index exists.
+            for (i, row) in self.rows.iter().enumerate() {
+                if predicate(row) {
+                    indices.push(i);
+                }
+            }
         }
 
-        for (&i, new_row) in indices.iter().zip(updated_rows.into_iter()) {
+        // Update rows at the collected indices.
+        for &i in &indices {
+            let mut new_row = self.rows[i].clone();
+            for (j, update) in updates.iter().enumerate() {
+                if let Some(val) = update {
+                    new_row[j] = val.clone();
+                }
+            }
+            self.validate_row(&new_row)?;
             self.rows[i] = new_row;
             self.update_indexes_for_row(i);
         }
-
         Ok(())
     }
 
@@ -90,7 +95,7 @@ impl Table {
         if let Some(index) = self.indexes.get(expr.column().as_str()) {
             if let Some(v) = expr.value() {
                 if let Some(row_indices) = index.get(v) {
-                    let to_remove: HashMap<usize, ()> = row_indices
+                    let to_remove: std::collections::HashMap<usize, ()> = row_indices
                         .iter()
                         .filter(|&&i| predicate(&self.rows[i]))
                         .map(|&i| (i, ()))
@@ -112,6 +117,10 @@ impl Table {
                     self.rebuild_all_indexes();
                 }
             }
+        } else {
+            // Fallback: remove rows by scanning all rows.
+            self.rows.retain(|row| !predicate(row));
+            self.rebuild_all_indexes();
         }
     }
 

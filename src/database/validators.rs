@@ -15,26 +15,28 @@ impl Database {
 
     pub fn create_table(&mut self, table: Table) -> Result<(), String> {
         if self.tables.contains_key(&table.name) {
-            return Err(format!("Table '{}' already exists", table.name));
+            Err(format!("Table '{}' already exists", table.name))
+        } else {
+            self.tables.insert(table.name.clone(), table);
+            Ok(())
         }
-        self.tables.insert(table.name.clone(), table);
-        Ok(())
+    }
+
+    fn get_table_mut(&mut self, table_name: &str) -> Result<&mut Table, String> {
+        self.tables
+            .get_mut(table_name)
+            .ok_or_else(|| format!("Table '{}' does not exist", table_name))
     }
 
     pub fn drop_table(&mut self, table_name: &str) -> Result<(), String> {
-        if self.tables.remove(table_name).is_some() {
-            Ok(())
-        } else {
-            Err(format!("Table '{}' does not exist", table_name))
-        }
+        self.tables
+            .remove(table_name)
+            .map(|_| ())
+            .ok_or_else(|| format!("Table '{}' does not exist", table_name))
     }
 
     pub fn alter_add_column(&mut self, table_name: &str, new_column: Column) -> Result<(), String> {
-        let table = self
-            .tables
-            .get_mut(table_name)
-            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
-
+        let table = self.get_table_mut(table_name)?;
         table.alter_add_column(new_column)
     }
 
@@ -44,20 +46,12 @@ impl Database {
         old_name: &str,
         new_name: &str,
     ) -> Result<(), String> {
-        let table = self
-            .tables
-            .get_mut(table_name)
-            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
-
+        let table = self.get_table_mut(table_name)?;
         table.rename_column(old_name, new_name)
     }
 
     pub fn drop_column(&mut self, table_name: &str, col_name: &str) -> Result<(), String> {
-        let table = self
-            .tables
-            .get_mut(table_name)
-            .ok_or_else(|| format!("Table '{}' does not exist", table_name))?;
-
+        let table = self.get_table_mut(table_name)?;
         table.drop_column(col_name)
     }
 
