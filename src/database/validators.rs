@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::table::model::{Table, Options, Column};
+use crate::table::model::{Table, Options};
 
 #[derive(Debug)]
 pub struct Database {
@@ -45,4 +45,6 @@ impl Database {
         }
         Ok(())
     }
+
+    pub fn inherit_from() { unimplemented!() }
 }

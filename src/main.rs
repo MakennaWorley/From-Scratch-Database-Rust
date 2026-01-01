@@ -37,20 +37,20 @@ fn main() {
     }
 
     // Insert a valid row
-    let input_row = vec![Value::Null, Value::Varchar("Alice".to_string()), Value::Null];
+    let input_row = vec![Value::NULL, Value::Varchar("Alice".to_string()), Value::NULL];
     match table.insert(input_row) {
         Ok(_) => println!("Row valid and inserted ✅"),
         Err(e) => println!("Insert failed ❌: {}", e),
     }
 
-    let input_row = vec![Value::Null, Value::Varchar("Bella".to_string()), Value::Null];
+    let input_row = vec![Value::NULL, Value::Varchar("Bella".to_string()), Value::NULL];
     match table.insert(input_row) {
         Ok(_) => println!("Row valid and inserted ✅"),
         Err(e) => println!("Insert failed ❌: {}", e),
     }
 
     // Insert duplicate (should violate UNIQUE constraint)
-    let duplicate_row = vec![Value::Null, Value::Varchar("Alice".to_string()), Value::Null];
+    let duplicate_row = vec![Value::NULL, Value::Varchar("Alice".to_string()), Value::NULL];
     match table.insert(duplicate_row) {
         Ok(_) => println!("❌ Inserted duplicate — UNIQUE constraint failed!"),
         Err(e) => println!("✅ UNIQUE constraint working as expected: {}", e),
@@ -112,7 +112,7 @@ fn main() {
         }
     ];
     let mut not_null_table = Table::create_table("emails", columns_not_null, None);
-    let result = not_null_table.insert(vec![Value::Null]);
+    let result = not_null_table.insert(vec![Value::NULL]);
     match result {
         Ok(_) => println!("❌ NOT NULL violation not caught!"),
         Err(e) => println!("✅ NOT NULL test passed: {}", e),
@@ -174,8 +174,8 @@ fn main() {
         }
     ];
     let mut auto_table = Table::create_table("autotest", columns_auto, Some(vec!["id".to_string()]));
-    auto_table.insert(vec![Value::Null]).unwrap();
-    auto_table.insert(vec![Value::Null]).unwrap();
+    auto_table.insert(vec![Value::NULL]).unwrap();
+    auto_table.insert(vec![Value::NULL]).unwrap();
     println!("✅ Autoincrement test:");
     auto_table.print_table();
 
@@ -188,7 +188,7 @@ fn main() {
         }
     ];
     let mut default_table = Table::create_table("defaulttest", columns_default, None);
-    default_table.insert(vec![Value::Null]).unwrap();
+    default_table.insert(vec![Value::NULL]).unwrap();
     println!("✅ Default value test:");
     default_table.print_table();
 
@@ -260,7 +260,7 @@ fn main() {
         options: vec![Options::NotNull, Options::AutoIncrement],
     }];
     let mut user_table = Table::create_table("users", user_cols.clone(), Some(vec!["id".to_string()]));
-    user_table.insert(vec![Value::Null]).unwrap();
+    user_table.insert(vec![Value::NULL]).unwrap();
 
     let login_cols = vec![Column {
         name: "user_id".to_string(),
@@ -284,7 +284,7 @@ fn main() {
         options: vec![Options::NotNull, Options::Default(Value::Int(100))],
     }];
     let mut combo_table = Table::create_table("combo", combo_cols, None);
-    let result = combo_table.insert(vec![Value::Null]);
+    let result = combo_table.insert(vec![Value::NULL]);
     match result {
         Ok(_) => {
             println!("✅ Default + NOT NULL combo accepted:");

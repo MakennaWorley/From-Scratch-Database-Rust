@@ -14,7 +14,6 @@ pub enum DataType {
     Time, //HH:MM:SS
     DateTime, //YYYY-MM-DD HH:MM:SS
     JSON, //Storing JSON inside tables
-    GENERATED, //Combinations from other columns in table (a+b) Stored (think beastmodes from DOMO)
-    INHERITS, //Postgres
-    HASHED, //Data unsearchable, treated like its not there unless user can unhash it
+    Generated, //Combinations from other columns in table (a+b) Stored (think beastmodes from DOMO)
+    Hashed, //Data unsearchable, treated like its not there unless user can unhash it
 }

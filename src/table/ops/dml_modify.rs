@@ -198,7 +198,7 @@ impl Table {
                         .iter()
                         .map(|r| r[agg_idx].clone())
                         .min()
-                        .unwrap_or(Value::Null);
+                        .unwrap_or(Value::NULL);
                     AggregationResult::Min(min)
                 }
                 "max" => {
@@ -206,7 +206,7 @@ impl Table {
                         .iter()
                         .map(|r| r[agg_idx].clone())
                         .max()
-                        .unwrap_or(Value::Null);
+                        .unwrap_or(Value::NULL);
                     AggregationResult::Max(max)
                 }
                 _ => return Err("Unknown aggregation function".into()),

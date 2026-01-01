@@ -1,5 +1,4 @@
 use crate::table::model::value::Value;
-use crate::table::model::column::Column;
 use crate::table::model::Table;
 
 #[derive(Debug, Clone)]
@@ -98,8 +97,8 @@ impl FilterExpr {
                 let high = high.clone();
                 Box::new(move |row| row[col_index] >= low && row[col_index] <= high)
             }
-            FilterExpr::IsNull(_) => Box::new(move |row| matches!(row[col_index], Value::Null)),
-            FilterExpr::IsNotNull(_) => Box::new(move |row| !matches!(row[col_index], Value::Null)),
+            FilterExpr::IsNull(_) => Box::new(move |row| matches!(row[col_index], Value::NULL)),
+            FilterExpr::IsNotNull(_) => Box::new(move |row| !matches!(row[col_index], Value::NULL)),
         }
     }
 

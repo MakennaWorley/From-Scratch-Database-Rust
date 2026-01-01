@@ -19,7 +19,7 @@ impl Table {
             }
 
             // 2. NOT NULL check
-            if let Value::Null = value {
+            if let Value::NULL = value {
                 if column.options.contains(&Options::NotNull) {
                     return Err(format!(
                         "Column '{}' is NOT NULL but received NULL",
@@ -109,8 +109,8 @@ impl Table {
     pub fn apply_defaults(&self, partial_row: &DBRows) -> Result<DBRows, String> {
         let mut full_row = Vec::new();
         for (i, col) in self.columns.iter().enumerate() {
-            let val = partial_row.get(i).cloned().unwrap_or(Value::Null);
-            if let Value::Null = val {
+            let val = partial_row.get(i).cloned().unwrap_or(Value::NULL);
+            if let Value::NULL = val {
                 if let Some(default) = col.options.iter().find_map(|opt| {
                     if let Options::Default(v) = opt {
                         Some(v.clone())
@@ -143,7 +143,7 @@ impl Table {
                 format!("Cannot add NOT NULL column '{}' without a default value", col.name)
             })
         } else {
-            Ok(default_val.unwrap_or(Value::Null))
+            Ok(default_val.unwrap_or(Value::NULL))
         }
     }
 

@@ -41,7 +41,7 @@ impl Column {
         for opt in &self.options {
             match opt {
                 Options::NotNull => has_not_null = true,
-                Options::Default(Value::Null) => has_default_null = true,
+                Options::Default(Value::NULL) => has_default_null = true,
                 Options::AutoIncrement => has_autoincrement = true,
                 _ => {}
             }

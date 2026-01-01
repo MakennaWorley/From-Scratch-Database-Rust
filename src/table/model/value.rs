@@ -19,7 +19,10 @@ pub enum Value {
     Date(NaiveDate),
     Time(NaiveTime),
     DateTime(NaiveDateTime),
-    Null
+    JSON(String),
+    Generated(f64),
+    Hashed(String),
+    NULL
 }
 
 impl Value {
@@ -38,7 +41,10 @@ impl Value {
             Value::Date(_) => 10,
             Value::Time(_) => 11,
             Value::DateTime(_) => 12,
-            Value::Null => 13,
+            Value::JSON(_) => 13,
+            Value::Generated(_) => 14,
+            Value::Hashed(_) => 15,
+            Value::NULL => 16,
         }
     }
     
@@ -69,7 +75,10 @@ impl Value {
             (Value::Date(_), DataType::Date) => true,
             (Value::Time(_), DataType::Time) => true,
             (Value::DateTime(_), DataType::DateTime) => true,
-            (Value::Null, _) => true, // null is allowed type-wise (check nullability separately)
+            (Value::JSON(_), DataType::JSON) => true,
+            (Value::Generated(_), DataType::Generated) => true,
+            (Value::Hashed(_), DataType::Hashed) => true,
+            (Value::NULL, _) => true, // null is allowed type-wise (check nullability separately)
             _ => false,
         }
     }
@@ -88,7 +97,10 @@ impl Value {
             Value::Date(d) => d.to_string(),
             Value::Time(t) => t.to_string(),
             Value::DateTime(dt) => dt.to_string(),
-            Value::Null => "NULL".to_string(),
+            Value::JSON(jsonString) => jsonString.to_string(),
+            Value::Generated(g) => g.to_string(),
+            Value::Hashed(h) => "Hashed".to_string(),
+            Value::NULL => "NULL".to_string(),
         }
     }
 
@@ -125,9 +137,13 @@ impl Value {
                     inner.split(',').map(|s| s.trim().to_string()).collect()
                 };
                 Ok(Value::Set(items, vec![]))
-            }
-
-            other => Err(format!("Unsupported datatype for literal parsing: {:?}", other)),
+            },
+            DataType::JSON => Ok(Value::JSON(unquoted.to_string())),
+            DataType::Generated => unquoted
+                .parse::<f64>()
+                .map(Value::Generated)
+                .map_err(|_| "Invalid generated numeric literal".to_string()),
+            DataType::Hashed => Ok(Value::Hashed(unquoted.to_string()))
         }
     }
 
@@ -146,7 +162,10 @@ impl Value {
             (Value::Date(_), DataType::Date) => true,
             (Value::Time(_), DataType::Time) => true,
             (Value::DateTime(_), DataType::DateTime) => true,
-            (Value::Null, _) => true, // Allow null everywhere for now
+            (Value::JSON(_), DataType::JSON) => true,
+            (Value::Generated(_), DataType::Generated) => true,
+            (Value::Hashed(_), DataType::Hashed) => true,
+            (Value::NULL, _) => true, // Allow null everywhere for now
             _ => false,
         }
     }
@@ -158,6 +177,7 @@ impl PartialEq for Value {
         match (self, other) {
             (Float(a), Float(b)) => a.to_bits() == b.to_bits(),
             (Double(a), Double(b)) => a.to_bits() == b.to_bits(),
+            (Generated(a), Generated(b)) => a.to_bits() == b.to_bits(),
             _ => mem::discriminant(self) == mem::discriminant(other) && {
                 match (self, other) {
                     (Char(a), Char(b)) => a == b,
@@ -171,7 +191,10 @@ impl PartialEq for Value {
                     (Date(a), Date(b)) => a == b,
                     (Time(a), Time(b)) => a == b,
                     (DateTime(a), DateTime(b)) => a == b,
-                    (Null, Null) => true,
+                    (JSON(a), JSON(b)) => a == b,
+                    (Generated(a), Generated(b)) => a.to_bits() == b.to_bits(),
+                    (Hashed(a), Hashed(b)) => a == b,
+                    (NULL, NULL) => true,
                     _ => false,
                 }
             }
@@ -187,6 +210,7 @@ impl PartialOrd for Value {
         match (self, other) {
             (Float(a), Float(b)) => a.partial_cmp(b),
             (Double(a), Double(b)) => a.partial_cmp(b),
+            (Generated(a), Generated(b)) => a.partial_cmp(b),
             _ => Some(self.cmp(other))
         }
     }
@@ -209,7 +233,10 @@ impl Ord for Value {
             (Date(a), Date(b)) => a.cmp(b),
             (Time(a), Time(b)) => a.cmp(b),
             (DateTime(a), DateTime(b)) => a.cmp(b),
-            (Null, Null) => std::cmp::Ordering::Equal,
+            (JSON(a), JSON(b)) => a.cmp(b),
+            (Generated(a), Generated(b)) => a.to_bits().cmp(&b.to_bits()),
+            (Hashed(a), Hashed(b)) => a.cmp(b),
+            (NULL, NULL) => std::cmp::Ordering::Equal,
             _ => self.variant_index().cmp(&other.variant_index()),
         }
     }
@@ -239,7 +266,10 @@ impl Hash for Value {
             Date(d) => d.hash(state),
             Time(t) => t.hash(state),
             DateTime(dt) => dt.hash(state),
-            Null => (),
+            JSON(s) => s.hash(state),
+            Generated(g) => g.to_bits().hash(state),
+            Hashed(h) => h.hash(state),
+            NULL => (),
         }
     }
 }
@@ -247,7 +277,7 @@ impl Hash for Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Null => write!(f, "NULL"),
+            Value::NULL => write!(f, "NULL"),
             Value::Int(i) => write!(f, "{i}"),
             Value::Float(x) => write!(f, "{x}"),
             Value::Boolean(b) => write!(f, "{b}"),
@@ -255,7 +285,9 @@ impl fmt::Display for Value {
             Value::Date(d) => write!(f, "{d}"),
             Value::Time(t) => write!(f, "{t}"),
             Value::DateTime(dt) => write!(f, "{dt}"),
-            Value::Null => write!(f, "NULL"),
+            Value::JSON(s) => write!(f, "{s}"),
+            Value::Generated(g) => write!(f, "{g}"),
+            Value::Hashed(_) => write!(f, "Hashed"),
             _ => todo!()
         }
     }

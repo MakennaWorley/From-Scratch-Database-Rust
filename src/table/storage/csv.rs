@@ -48,7 +48,10 @@ impl Table {
                     Value::Date(d) => format!("\"{}\"", d),
                     Value::Time(t) => format!("\"{}\"", t),
                     Value::DateTime(dt) => format!("\"{}\"", dt),
-                    Value::Null => "\"NULL\"".to_string(),
+                    Value::JSON(s) => format!("\"{}\"", s),
+                    Value::Generated(g) => format!("\"{}\"", g),
+                    Value::Hashed(_) => "\"Hashed\"".to_string(),
+                    Value::NULL => "\"NULL\"".to_string(),
                 })
                 .collect::<Vec<_>>()
                 .join(",");

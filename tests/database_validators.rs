@@ -22,7 +22,7 @@ mod tests {
             self.columns.push(new_column);
             // For each existing row, add a Null value for the new column.
             for row in &mut self.rows {
-                row.push(Value::Null);
+                row.push(Value::NULL);
             }
             Ok(())
         }
