@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
-use crate::table::model::value::Value;
+use crate::table::model::Value;
 
 #[derive(Debug, Clone)]
 pub enum IndexType {

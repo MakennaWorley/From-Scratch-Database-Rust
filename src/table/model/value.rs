@@ -1,4 +1,4 @@
-use crate::table::model::{DataType, };
+use crate::table::model::{DataType};
 use chrono::{NaiveDate, NaiveTime, NaiveDateTime};
 use std::fmt;
 use std::hash::{Hash, Hasher};

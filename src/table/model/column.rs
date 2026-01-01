@@ -1,5 +1,4 @@
-use crate::table::model::datatype::DataType;
-use crate::table::model::value::Value;
+use crate::table::model::{DataType, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Options {
