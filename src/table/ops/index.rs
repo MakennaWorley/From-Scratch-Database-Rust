@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
-use crate::table::data::{IndexType, Value, Table};
+use crate::table::model::{Table, Value, IndexType};
 
 impl Table {
+    // redo this to be like select with all parameters as optional for like where, order by, limit/offset, aggregations, etc
+    // note: this db will not excute deletes or updates unless a where is given, but users can still nuke a db if they forget to add one, so auto place with where 1 = 1
     pub fn create_index(&mut self, column_name: &str, use_btree: bool) -> Result<(), String> {
         let col_index = self
             .columns
@@ -49,4 +51,6 @@ impl Table {
             let _ = self.create_index(&name, false);
         }
     }
+
+    pub fn drop_indexes() { unimplemented!() }
 }

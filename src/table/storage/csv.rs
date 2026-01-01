@@ -1,4 +1,4 @@
-use crate::table::data::{Column, Table, Value};
+use crate::table::model::{Column, Table, Value};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -7,21 +7,6 @@ use std::path::Path;
 use csv::ReaderBuilder;
 
 impl Table {
-    pub fn print_table(&self) {
-        println!("\nTable: {}", self.name);
-        for col in &self.columns {
-            print!("| {:<15} ", col.name);
-        }
-        println!("|");
-
-        for row in &self.rows {
-            for val in row {
-                print!("| {:<15} ", val.to_display_string());
-            }
-            println!("|");
-        }
-    }
-
     pub fn save_to_file(&self, db_name: &str) -> Result<(), String> {
         let dir_path = Path::new("db");
         if !dir_path.exists() {
@@ -113,7 +98,7 @@ impl Table {
             rows.push(row);
         }
 
-        let mut table = Table::new(name, columns.clone(), primary_key.clone());
+        let mut table = Table::create_table(name, columns.clone(), primary_key.clone());
         table.rows = rows;
         let column_names: Vec<String> = table.columns.iter().map(|c| c.name.clone()).collect();
         for col in column_names {
@@ -121,28 +106,6 @@ impl Table {
         }
 
         Ok(table)
-    }
-
-    pub fn print_join_results(
-        left_headers: &[String],
-        right_headers: &[String],
-        results: &[(Vec<&Value>, Vec<&Value>)],
-    ) {
-        let total_headers = left_headers
-            .iter()
-            .chain(right_headers.iter())
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
-        println!("{}", total_headers.join(" | "));
-
-        for (left, right) in results {
-            let row = left
-                .iter()
-                .chain(right.iter())
-                .map(|v| v.to_display_string())
-                .collect::<Vec<_>>();
-            println!("{}", row.join(" | "));
-        }
     }
 
     pub fn save_join_table_to_file(
@@ -189,7 +152,7 @@ impl Table {
         for row in &self.rows {
             let line = row
                 .iter()
-                .map(|v| v.to_display_string())
+                .map(|v| v.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
             writeln!(writer, "{}", line).map_err(|e| e.to_string())?;

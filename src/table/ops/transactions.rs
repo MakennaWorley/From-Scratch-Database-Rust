@@ -1,4 +1,4 @@
-use crate::table::data::{Table};
+use crate::table::model::Table;
 
 impl Table {
     pub fn begin_transaction(&mut self) -> Result<(), String> {
@@ -12,7 +12,7 @@ impl Table {
     pub fn rollback_transaction(&mut self) -> Result<(), String> {
         if let Some(backup) = self.transaction_backup.take() {
             self.rows = backup;
-            self.rebuild_all_indexes(); // restore consistency
+            self.rebuild_all_indexes();
             Ok(())
         } else {
             Err("No transaction to rollback".into())

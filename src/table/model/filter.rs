@@ -1,5 +1,21 @@
-use crate::table::data::{Table, Value};
-pub use crate::table::data::FilterExpr;
+use crate::table::model::value::Value;
+use crate::table::model::column::Column;
+use crate::table::model::Table;
+
+#[derive(Debug, Clone)]
+pub enum FilterExpr {
+    Eq(String, Value),
+    Ne(String, Value),
+    Gt(String, Value),
+    Lt(String, Value),
+    Ge(String, Value),
+    Le(String, Value),
+    Like(String, String),
+    In(String, Vec<Value>),
+    Between(String, Value, Value),
+    IsNull(String),
+    IsNotNull(String),
+}
 
 impl FilterExpr {
     pub fn value(&self) -> Option<&Value> {
@@ -18,8 +34,18 @@ impl FilterExpr {
         }
     }
 
-    pub fn to_predicate(&self, table: &Table) -> Box<dyn Fn(&Vec<Value>) -> bool + '_> {
-        let col_index = table.columns.iter().position(|c| c.name == *self.column()).unwrap();
+    pub fn to_predicate<'a>(
+        &'a self,
+        columns: &Table,
+    ) -> Box<dyn Fn(&[Value]) -> bool + 'a> {
+        let col_name = self.column().as_str();
+
+        let col_index = columns
+            .columns
+            .iter()
+            .position(|c| c.name.as_str() == col_name)
+            .unwrap();
+
         match self {
             FilterExpr::Eq(_, v) => {
                 let val = v.clone();
@@ -48,8 +74,7 @@ impl FilterExpr {
             FilterExpr::Like(_, pattern) => {
                 let pat = pattern.clone();
                 Box::new(move |row| {
-                    let val_str = row[col_index].to_display_string();
-                    // A very basic LIKE implementation: support wildcard '%' at beginning/end.
+                    let val_str = row[col_index].to_string();
                     if pat.starts_with('%') && pat.ends_with('%') {
                         let inner = pat.trim_matches('%');
                         val_str.contains(inner)
@@ -66,21 +91,15 @@ impl FilterExpr {
             }
             FilterExpr::In(_, list) => {
                 let list_clone = list.clone();
-                Box::new(move |row| {
-                    list_clone.iter().any(|item| row[col_index] == *item)
-                })
+                Box::new(move |row| list_clone.iter().any(|item| row[col_index] == *item))
             }
             FilterExpr::Between(_, low, high) => {
                 let low = low.clone();
                 let high = high.clone();
                 Box::new(move |row| row[col_index] >= low && row[col_index] <= high)
             }
-            FilterExpr::IsNull(_) => {
-                Box::new(move |row| matches!(row[col_index], Value::Null))
-            }
-            FilterExpr::IsNotNull(_) => {
-                Box::new(move |row| !matches!(row[col_index], Value::Null))
-            }
+            FilterExpr::IsNull(_) => Box::new(move |row| matches!(row[col_index], Value::Null)),
+            FilterExpr::IsNotNull(_) => Box::new(move |row| !matches!(row[col_index], Value::Null)),
         }
     }
 

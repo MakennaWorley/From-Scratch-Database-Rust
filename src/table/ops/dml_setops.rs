@@ -1,29 +1,37 @@
-use crate::table::data::{DataType, Table, Value};
 use std::collections::{HashMap, HashSet};
+use crate::table::model::{Column, Table, Value};
 
 impl Table {
-    pub fn truncate(&mut self) {
-        self.rows.clear();
-        self.indexes.clear();
-    }
+    // redo this to be like select with all parameters as optional for like where, order by, limit/offset, aggregations, etc
+    // note: this db will not excute deletes or updates unless a where is given, but users can still nuke a db if they forget to add one, so auto place with where 1 = 1
+    pub fn with_alias(&self, alias: &str) -> Table {
+        use std::collections::HashSet;
 
-    pub fn value_matches_type(val: &Value, dtype: &DataType) -> bool {
-        match (val, dtype) {
-            (Value::Char(_), DataType::Char) => true,
-            (Value::Varchar(_), DataType::Varchar) => true,
-            (Value::Text(_), DataType::Text) => true,
-            (Value::Enum(_, _), DataType::Enum) => true,
-            (Value::Set(_, _), DataType::Set) => true,
-            (Value::Boolean(_), DataType::Boolean) => true,
-            (Value::Int(_), DataType::Int) => true,
-            (Value::BigInt(_), DataType::BigInt) => true,
-            (Value::Float(_), DataType::Float) => true,
-            (Value::Double(_), DataType::Double) => true,
-            (Value::Date(_), DataType::Date) => true,
-            (Value::Time(_), DataType::Time) => true,
-            (Value::DateTime(_), DataType::DateTime) => true,
-            (Value::Null, _) => true, // Allow null everywhere for now
-            _ => false,
+        let mut seen_names = HashSet::new();
+        let mut columns = vec![];
+
+        for col in &self.columns {
+            let mut col_name = format!("{}.{}", alias, col.name);
+            while seen_names.contains(&col_name) {
+                col_name.push('_');
+            }
+            seen_names.insert(col_name.clone());
+
+            columns.push(Column {
+                name: col_name,
+                datatype: col.datatype.clone(),
+                options: col.options.clone(),
+            });
+        }
+
+        let rows = self.rows.clone(); // shallow clone
+        Table {
+            name: format!("{}_alias", self.name),
+            columns,
+            rows,
+            primary_key: self.primary_key.clone(),
+            indexes: HashMap::new(),
+            transaction_backup: None,
         }
     }
 
@@ -41,7 +49,7 @@ impl Table {
         let mut seen = HashSet::new();
         new_rows.retain(|row| {
             let key = row.iter()
-                .map(|v| v.to_display_string())
+                .map(|v| v.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
             if seen.contains(&key) { false } else { seen.insert(key); true }
@@ -61,10 +69,10 @@ impl Table {
             return Err("Tables have different number of columns".to_string());
         }
         let other_set: HashSet<String> = other.rows.iter().map(|row| {
-            row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",")
+            row.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
         }).collect();
         let new_rows: Vec<Vec<Value>> = self.rows.iter().filter(|row| {
-            let key = row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",");
+            let key = row.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",");
             other_set.contains(&key)
         }).cloned().collect();
         Ok(Table {
@@ -82,10 +90,10 @@ impl Table {
             return Err("Tables have different number of columns".to_string());
         }
         let other_set: HashSet<String> = other.rows.iter().map(|row| {
-            row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",")
+            row.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",")
         }).collect();
         let new_rows: Vec<Vec<Value>> = self.rows.iter().filter(|row| {
-            let key = row.iter().map(|v| v.to_display_string()).collect::<Vec<_>>().join(",");
+            let key = row.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(",");
             !other_set.contains(&key)
         }).cloned().collect();
         Ok(Table {

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use database::filter;
-    use database::table::data::{FilterExpr, Value};
+    use database::table::model::{FilterExpr, Value};
 
     #[test]
     fn test_filter_eq() {

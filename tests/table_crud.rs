@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use database::table::data::{Column, DataType, Options, Value, Table};
-    use database::table::filters::FilterExpr;
+    use database::table::model::{Column, DataType, Options, Value, Table, FilterExpr};
     use std::collections::HashMap;
     use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -31,7 +30,7 @@ mod tests {
             },
         ];
         let pk = Some(vec!["id".to_string()]);
-        let table = Table::new("users", columns.clone(), pk.clone());
+        let table = Table::create_table("users", columns.clone(), pk.clone());
         assert_eq!(table.name, "users");
         compare_columns(&table.columns, &columns);
         assert_eq!(table.primary_key, pk);
@@ -51,7 +50,7 @@ mod tests {
                 options: vec![],
             },
         ];
-        let mut table = Table::new("users", columns, None);
+        let mut table = Table::create_table("users", columns, None);
         let row = vec![Value::Int(1), Value::Varchar("Alice".to_string())];
         let result = table.insert(row.clone());
         assert!(result.is_ok(), "Insertion should succeed");
@@ -73,7 +72,7 @@ mod tests {
                 options: vec![],
             },
         ];
-        let mut table = Table::new("scores", columns, None);
+        let mut table = Table::create_table("scores", columns, None);
         // Insert two rows.
         let row1 = vec![Value::Int(1), Value::Int(50)];
         let row2 = vec![Value::Int(2), Value::Int(60)];
@@ -106,7 +105,7 @@ mod tests {
                 options: vec![],
             },
         ];
-        let mut table = Table::new("users", columns, None);
+        let mut table = Table::create_table("users", columns, None);
         // Insert three rows.
         let row1 = vec![Value::Int(1), Value::Varchar("Alice".to_string())];
         let row2 = vec![Value::Int(2), Value::Varchar("Bob".to_string())];
@@ -146,7 +145,7 @@ mod tests {
                 options: vec![],
             },
         ];
-        let table = Table::new("employees", columns.clone(), None);
+        let table = Table::create_table("employees", columns.clone(), None);
         let aliased_table = table.with_alias("emp");
         // New table name should be "employees_alias".
         assert_eq!(aliased_table.name, "employees_alias");
@@ -175,7 +174,7 @@ mod tests {
             Column { name: "datetime_col".to_string(), datatype: DataType::DateTime, options: vec![] },
         ];
 
-        Table::new("test_all_types", columns, None)
+        Table::create_table("test_all_types", columns, None)
     }
 
     fn make_test_row() -> Vec<Value> {
