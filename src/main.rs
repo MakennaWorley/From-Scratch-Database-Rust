@@ -1,7 +1,7 @@
 mod table;
 mod database;
 
-use crate::table::data::{Table, Column, Value, DataType, Options, FilterExpr};
+use crate::table::model::{Column, DataType, FilterExpr, Options, Table, Value};
 use crate::database::validators::Database;
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ fn main() {
         Column {
             name: "id".to_string(),
             datatype: DataType::Int,
-            options: vec![Options::NotNull, Options::Autoincrement],
+            options: vec![Options::NotNull, Options::AutoIncrement],
         },
         Column {
             name: "name".to_string(),
@@ -30,7 +30,7 @@ fn main() {
     ];
 
     // Create table and validate schema
-    let mut table = Table::new("users", columns.clone(), Some(vec!["id".to_string()]));
+    let mut table = Table::create_table("users", columns.clone(), Some(vec!["id".to_string()]));
     match table.validate_schema() {
         Ok(_) => println!("Schema valid ✅"),
         Err(e) => println!("Schema error ❌: {}", e),
@@ -84,7 +84,7 @@ fn main() {
             Column {
                 name: "user_id".to_string(),
                 datatype: DataType::Int,
-                options: vec![Options::FK("users_missing".to_string())],
+                options: vec![Options::ForeignKey("users_missing".to_string())],
             }
         ],
         rows: vec![],
@@ -111,7 +111,7 @@ fn main() {
             options: vec![Options::NotNull],
         }
     ];
-    let mut not_null_table = Table::new("emails", columns_not_null, None);
+    let mut not_null_table = Table::create_table("emails", columns_not_null, None);
     let result = not_null_table.insert(vec![Value::Null]);
     match result {
         Ok(_) => println!("❌ NOT NULL violation not caught!"),
@@ -126,7 +126,7 @@ fn main() {
             options: vec![Options::Check("status = active".to_string())],
         }
     ];
-    let mut check_table = Table::new("checktest", columns_check, None);
+    let mut check_table = Table::create_table("checktest", columns_check, None);
     let result = check_table.insert(vec![Value::Varchar("inactive".to_string())]);
     match result {
         Ok(_) => println!("❌ CHECK constraint violation not caught!"),
@@ -142,7 +142,7 @@ fn main() {
         }
     ];
     let allowed_roles = vec!["admin".to_string(), "user".to_string()];
-    let mut enum_table = Table::new("enumtest", columns_enum, None);
+    let mut enum_table = Table::create_table("enumtest", columns_enum, None);
     let result = enum_table.insert(vec![Value::Enum("guest".to_string(), allowed_roles.clone())]);
     match result {
         Ok(_) => println!("❌ ENUM constraint violation not caught!"),
@@ -158,7 +158,7 @@ fn main() {
         }
     ];
     let allowed_tags = vec!["safe".to_string(), "reviewed".to_string()];
-    let mut set_table = Table::new("settest", columns_set, None);
+    let mut set_table = Table::create_table("settest", columns_set, None);
     let result = set_table.insert(vec![Value::Set(vec!["dangerous".to_string()], allowed_tags.clone())]);
     match result {
         Ok(_) => println!("❌ SET constraint violation not caught!"),
@@ -170,10 +170,10 @@ fn main() {
         Column {
             name: "id".to_string(),
             datatype: DataType::Int,
-            options: vec![Options::NotNull, Options::Autoincrement],
+            options: vec![Options::NotNull, Options::AutoIncrement],
         }
     ];
-    let mut auto_table = Table::new("autotest", columns_auto, Some(vec!["id".to_string()]));
+    let mut auto_table = Table::create_table("autotest", columns_auto, Some(vec!["id".to_string()]));
     auto_table.insert(vec![Value::Null]).unwrap();
     auto_table.insert(vec![Value::Null]).unwrap();
     println!("✅ Autoincrement test:");
@@ -187,7 +187,7 @@ fn main() {
             options: vec![Options::Default(Value::Date(NaiveDate::from_ymd_opt(2023, 12, 25).unwrap()))],
         }
     ];
-    let mut default_table = Table::new("defaulttest", columns_default, None);
+    let mut default_table = Table::create_table("defaulttest", columns_default, None);
     default_table.insert(vec![Value::Null]).unwrap();
     println!("✅ Default value test:");
     default_table.print_table();
@@ -199,7 +199,7 @@ fn main() {
             options: vec![Options::NotNull],
         }
     ];
-    let mut pk_table = Table::new("pk_test", columns_pk, Some(vec!["id".to_string()]));
+    let mut pk_table = Table::create_table("pk_test", columns_pk, Some(vec!["id".to_string()]));
     pk_table.insert(vec![Value::Int(1)]).unwrap();
     let result = pk_table.insert(vec![Value::Int(1)]);
     match result {
@@ -219,7 +219,7 @@ fn main() {
             options: vec![],
         },
     ];
-    let mut multi_pk_table = Table::new("multipk", columns_multi_pk, Some(vec!["first".to_string(), "second".to_string()]));
+    let mut multi_pk_table = Table::create_table("multipk", columns_multi_pk, Some(vec!["first".to_string(), "second".to_string()]));
     multi_pk_table.insert(vec![Value::Int(1), Value::Int(2)]).unwrap();
     let result = multi_pk_table.insert(vec![Value::Int(1), Value::Int(2)]);
     match result {
@@ -234,7 +234,7 @@ fn main() {
             options: vec![],
         }
     ];
-    let mut type_table = Table::new("typetest", columns_type, None);
+    let mut type_table = Table::create_table("typetest", columns_type, None);
     let result = type_table.insert(vec![Value::Varchar("not an int".to_string())]);
     match result {
         Ok(_) => println!("❌ Type mismatch not caught!"),
@@ -245,7 +245,7 @@ fn main() {
         Column { name: "a".to_string(), datatype: DataType::Int, options: vec![] },
         Column { name: "b".to_string(), datatype: DataType::Int, options: vec![] },
     ];
-    let mut mismatch_table = Table::new("col_mismatch", columns_mismatch, None);
+    let mut mismatch_table = Table::create_table("col_mismatch", columns_mismatch, None);
     let result = mismatch_table.insert(vec![Value::Int(1)]); // Missing second column
     match result {
         Ok(_) => println!("❌ Insert with missing values not caught!"),
@@ -257,17 +257,17 @@ fn main() {
     let user_cols = vec![Column {
         name: "id".to_string(),
         datatype: DataType::Int,
-        options: vec![Options::NotNull, Options::Autoincrement],
+        options: vec![Options::NotNull, Options::AutoIncrement],
     }];
-    let mut user_table = Table::new("users", user_cols.clone(), Some(vec!["id".to_string()]));
+    let mut user_table = Table::create_table("users", user_cols.clone(), Some(vec!["id".to_string()]));
     user_table.insert(vec![Value::Null]).unwrap();
 
     let login_cols = vec![Column {
         name: "user_id".to_string(),
         datatype: DataType::Int,
-        options: vec![Options::FK("users".to_string())],
+        options: vec![Options::ForeignKey("users".to_string())],
     }];
-    let mut login_table = Table::new("logins", login_cols, None);
+    let mut login_table = Table::create_table("logins", login_cols, None);
     login_table.insert(vec![Value::Int(1)]).unwrap(); // Should pass FK
 
     db.tables.insert("users".to_string(), user_table);
@@ -283,7 +283,7 @@ fn main() {
         datatype: DataType::Int,
         options: vec![Options::NotNull, Options::Default(Value::Int(100))],
     }];
-    let mut combo_table = Table::new("combo", combo_cols, None);
+    let mut combo_table = Table::create_table("combo", combo_cols, None);
     let result = combo_table.insert(vec![Value::Null]);
     match result {
         Ok(_) => {
@@ -311,7 +311,7 @@ fn main() {
             options: vec![],
         },
     ];
-    let mut complex_table = Table::new("complex", complex_columns.clone(), None);
+    let mut complex_table = Table::create_table("complex", complex_columns.clone(), None);
 
     // Insert with complex values
     let insert_result = complex_table.insert(vec![
@@ -349,13 +349,13 @@ fn main() {
             options: vec![],
         }
     ];
-    let mut empty_table = Table::new("empty_delete", empty_columns.clone(), None);
+    let mut empty_table = Table::create_table("empty_delete", empty_columns.clone(), None);
     empty_table.delete_where(&FilterExpr::Eq("id".to_string(), Value::Int(1)));
     println!("✅ Safe delete on empty table passed");
     empty_table.print_table();
 
     // Delete a row that doesn’t exist
-    let mut one_row_table = Table::new("delete_miss", empty_columns.clone(), None);
+    let mut one_row_table = Table::create_table("delete_miss", empty_columns.clone(), None);
     one_row_table.insert(vec![Value::Int(1)]).unwrap();
     one_row_table.delete_where(&FilterExpr::Eq("id".to_string(), Value::Int(999)));
     println!("✅ No rows deleted, as expected:");

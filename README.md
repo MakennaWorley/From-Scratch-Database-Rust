@@ -12,3 +12,6 @@ Make sure you have Rust installed on your device (https://doc.rust-lang.org/beta
 Pull down the lastest changes from the main branch.
 
 Run ```cargo build``` and then run from that same location ```cargo run```.
+
+To run tests:
+Ex: cargo test --test macros_macros

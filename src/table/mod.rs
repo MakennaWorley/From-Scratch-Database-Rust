@@ -1,4 +1,6 @@
-pub mod data;
-pub mod functions;
-pub mod validators;
-mod filters;
+pub mod model;
+pub mod ops;
+pub mod storage;
+pub mod validate;
+
+pub type DBRows = Vec<model::Value>;
