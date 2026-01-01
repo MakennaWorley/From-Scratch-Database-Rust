@@ -1,17 +1,17 @@
-pub mod datatype;
-pub mod value;
 pub mod column;
-pub mod table;
-pub mod index;
+pub mod datatype;
 pub mod filter;
+pub mod index;
 pub mod query;
+pub mod table;
+pub mod value;
 pub mod view;
 
-pub use datatype::DataType;
-pub use value::Value;
 pub use column::{Column, Options};
-pub use table::Table;
-pub use index::IndexType;
+pub use datatype::DataType;
 pub use filter::FilterExpr;
+pub use index::IndexType;
 pub use query::{Query, AggregationResult};
+pub use table::Table;
+pub use value::Value;
 pub use view::View;

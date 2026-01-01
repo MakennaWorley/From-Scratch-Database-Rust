@@ -1,4 +1,4 @@
-use crate::table::model::{Column, Table, Options, Value};
+use crate::table::model::{Column, Options, Table, Value};
 use crate::table::DBRows;
 
 impl Table {

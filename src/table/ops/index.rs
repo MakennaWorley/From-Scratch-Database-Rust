@@ -1,5 +1,5 @@
+use crate::table::model::{IndexType, Table, Value};
 use std::collections::{BTreeMap, HashMap};
-use crate::table::model::{Table, Value, IndexType};
 
 impl Table {
     // redo this to be like select with all parameters as optional for like where, order by, limit/offset, aggregations, etc

@@ -1,5 +1,5 @@
+use crate::table::model::{AggregationResult, FilterExpr, Table, Value};
 use std::collections::HashMap;
-use crate::table::model::{Table, Value, FilterExpr, AggregationResult};
 
 impl Table {
     // redo this to be like select with all parameters as optional for like where, order by, limit/offset, aggregations, etc

@@ -1,4 +1,4 @@
-use crate::table::model::{Table, Options, DataType, Value, Column};
+use crate::table::model::{Column, DataType, Options, Table, Value};
 use std::collections::HashSet;
 
 impl Table {

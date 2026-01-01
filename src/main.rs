@@ -1,11 +1,10 @@
 mod table;
 mod database;
 
-use crate::table::model::{Column, DataType, FilterExpr, Options, Table, Value};
 use crate::database::validators::Database;
-use std::collections::HashMap;
-
+use crate::table::model::{Column, DataType, FilterExpr, Options, Table, Value};
 use chrono::NaiveDate;
+use std::collections::HashMap;
 
 fn main() {
     // Define columns

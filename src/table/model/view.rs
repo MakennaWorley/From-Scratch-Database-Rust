@@ -1,5 +1,5 @@
+use crate::table::model::{Column, IndexType, Table, Value};
 use std::collections::HashMap;
-use crate::table::model::{Column, IndexType, Value, Table};
 
 pub struct View<'a> {
     pub name: String,

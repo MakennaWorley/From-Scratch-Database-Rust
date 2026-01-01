@@ -1,5 +1,5 @@
+use crate::table::model::{Column, IndexType, Value};
 use std::collections::HashMap;
-use crate::table::model::{Value, Column, IndexType};
 
 #[derive(Debug)]
 pub struct Table {

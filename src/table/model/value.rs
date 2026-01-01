@@ -1,5 +1,5 @@
 use crate::table::model::{DataType};
-use chrono::{NaiveDate, NaiveTime, NaiveDateTime};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;

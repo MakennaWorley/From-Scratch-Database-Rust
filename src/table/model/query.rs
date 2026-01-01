@@ -1,4 +1,4 @@
-use crate::table::model::{Value, Table, DataType, Column};
+use crate::table::model::{Column, DataType, Table, Value};
 use std::collections::HashMap;
 
 #[derive(Debug)]

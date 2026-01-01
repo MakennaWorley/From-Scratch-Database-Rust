@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use database::table::model::{Column, DataType, Options, Value, Table, FilterExpr};
-    use std::collections::HashMap;
+    use database::table::model::{Column, DataType, FilterExpr, Options, Table, Value};
     use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
     // Helper function to compare two vectors of Columns by comparing each field.

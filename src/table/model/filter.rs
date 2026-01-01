@@ -1,4 +1,4 @@
-use crate::table::model::{Value, Table};
+use crate::table::model::{Table, Value};
 
 #[derive(Debug, Clone)]
 pub enum FilterExpr {
