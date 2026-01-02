@@ -1,5 +1,6 @@
 use crate::table::model::{Column, DataType, Options, Table, Value};
 use crate::table::DBRows;
+use std::collections::HashMap;
 
 impl Table {
     pub fn validate_row(&self, row: &DBRows) -> Result<(), String> {
@@ -195,4 +196,35 @@ impl Table {
         }
         Ok(max_val + 1)
     }
+}
+
+pub fn check_unique_no_dupes(
+    rows: &[Vec<Value>],
+    col_idx: usize,
+    col_name: &str,
+) -> Result<(), String> {
+    let mut seen: HashMap<Value, usize> = HashMap::new();
+
+    for (row_i, row) in rows.iter().enumerate() {
+        let v = row.get(col_idx).cloned().ok_or_else(|| {
+            format!("Row {} missing value for column '{}'", row_i, col_name)
+        })?;
+
+        // MySQL-style UNIQUE: allow multiple NULLs
+        if matches!(v, Value::NULL) {
+            continue;
+        }
+
+        if let Some(first_row) = seen.insert(v.clone(), row_i) {
+            return Err(format!(
+                "Cannot add UNIQUE on '{}': duplicate value '{}' found in rows {} and {}",
+                col_name,
+                v.to_display_string(),
+                first_row,
+                row_i
+            ));
+        }
+    }
+
+    Ok(())
 }

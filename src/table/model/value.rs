@@ -1,4 +1,4 @@
-use crate::table::model::{DataType};
+use crate::table::model::DataType;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -26,7 +26,7 @@ pub enum Value {
 }
 
 impl Value {
-    fn variant_index(&self) -> u8 {
+    pub fn variant_index(&self) -> u8 {
         match self {
             Value::Char(_) => 0,
             Value::Varchar(_) => 1,
@@ -168,6 +168,23 @@ impl Value {
             (Value::NULL, _) => true, // Allow null everywhere for now
             _ => false,
         }
+    }
+
+    pub fn is_null(v: &Value) -> bool {
+        matches!(v, Value::NULL)
+    }
+
+    pub fn cast_value(v: Value, new_type: &DataType) -> Result<Value, String> {
+        if matches!(v, Value::NULL) {
+            return Ok(Value::NULL);
+        }
+
+        if v.is_type_compatible_with(new_type) {
+            return Ok(v);
+        }
+
+        let s = v.to_display_string();
+        Value::from_str(&s, new_type)
     }
 }
 

@@ -19,3 +19,13 @@ pub struct Column {
     pub datatype: DataType,
     pub options: Vec<Options>,
 }
+
+impl Column {
+    pub fn has_option(col: &Column, f: impl Fn(&Options) -> bool) -> bool {
+        col.options.iter().any(f)
+    }
+
+    pub fn remove_options_matching(col: &mut Column, f: impl Fn(&Options) -> bool) {
+        col.options.retain(|opt| !f(opt));
+    }
+}
