@@ -28,7 +28,7 @@ fn main() {
         },
     ];
 
-    // Create table and validate schema
+    // Create table and validators schema
     let mut table = Table::create_table("users", columns.clone(), Some(vec!["id".to_string()]));
     match table.validate_schema() {
         Ok(_) => println!("Schema valid ✅"),
